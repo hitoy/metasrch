@@ -64,7 +64,7 @@ class Scheduler{
     public function init_engines(){
         $dir= "./engines";
         if(!is_dir($dir))
-            DM_ECHO('SystemError, Failed!');
+            DM_ECHO('SystemError, Failed!',$this->query);
         $fd = opendir($dir);
         while(($file=readdir($fd))!==false){
             preg_match('/class\.([^.]*)\.php/',$file,$m);
@@ -76,21 +76,21 @@ class Scheduler{
     public function run(){
         $this->send_header();
         if($this->requestkey != KEY)
-            DM_ECHO('REQEUST KEY INVALID, Failed!');
+            DM_ECHO('REQEUST KEY INVALID, Failed!',$this->query);
         if($this->action=='listengine'){
             $this->showEngines();
         }elseif($this->action=='search'){
             $this->get_Results();
         }
         if($this->Format == 'json')
-            echo DM_ECHO('Get Result Success!',count($this->results),$this->results);
+            echo DM_ECHO('Get Result Success!',$this->query,count($this->results),$this->results);
         else
-            echo DM_RESULTS_TO_HTML($this->results);
+            echo DM_RESULTS_TO_HTML($this->query,$this->results);
     }
 
     public function get_Results(){
         if($this->query==NULL)
-            DM_ECHO('Not Specified Search Key, Failed!');
+            DM_ECHO('Not Specified Search Key, Failed!',$this->query);
         if(in_array('all',$this->EngineInUse)){
             $engines = $this->SupportEngines;
         }else{
@@ -105,7 +105,7 @@ class Scheduler{
     }
 
     public function showEngines(){
-        DM_ECHO('Support Engines',count($this->SupportEngines),$this->SupportEngines); 
+        DM_ECHO('Support Engines',$this->query,count($this->SupportEngines),$this->SupportEngines); 
     }
 
     public function send_header(){
