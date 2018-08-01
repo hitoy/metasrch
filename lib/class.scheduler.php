@@ -57,6 +57,7 @@ class Scheduler{
         $this->offset = isset($_GET['offset']) ? $_GET['offset'] : 0;
         $this->requestkey = isset($_GET['key']) ? $_GET['key'] : '';
         $this->EngineInUse = isset($_GET['engine']) ? $_GET['engine'] : array('all') ;
+        $this->Format = isset($_GET['format']) ? $_GET['format'] : 'json';
         $this->init_engines();
     }
 
@@ -81,7 +82,10 @@ class Scheduler{
         }elseif($this->action=='search'){
             $this->get_Results();
         }
-        echo DM_ECHO('Get Result Success!',count($this->results),$this->results);
+        if($this->Format == 'json')
+            echo DM_ECHO('Get Result Success!',count($this->results),$this->results);
+        else
+            echo DM_RESULTS_TO_HTML($this->results);
     }
 
     public function get_Results(){
@@ -105,6 +109,7 @@ class Scheduler{
     }
 
     public function send_header(){
+        if($this->Format=='json')
         header("Content-Type:application/json");
     }
 }
