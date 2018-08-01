@@ -6,6 +6,7 @@ function DM_ECHO($message,$resultcount=0,$results=array(),$die=true){
     if($die)
         die;
 }
+
 spl_autoload_register(function ($name){
     require_once(ABSPATH.'engines/class.'.$name.'.php');
 });

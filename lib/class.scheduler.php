@@ -94,8 +94,9 @@ class Scheduler{
         }
         foreach($engines as $engine){
             $sen = new $engine();
-            $result = $sen->get_Results($this->query,$this->count);
-            array_push($this->results,$result);
+            $results = $sen->get_Results($this->query,$this->count);
+            foreach($results as $result)
+                array_push($this->results,$result);
         }
     }
 
