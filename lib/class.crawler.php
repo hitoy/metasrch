@@ -21,7 +21,7 @@ class Crawler{
     public $timeout;
 
     //其他header信息
-    public $header=array('Accept: text/html,application/xhtml+xml,application/xml;application/json;q=0.9,*/*;q=0.8','Accept-Encoding: gzip, identity','Accept-Language: en-US,en;q=0.8','Connection: keep-alive');
+    public $header=array('Accept: text/html,application/xhtml+xml,application/xml;application/json;q=0.9,*/*;q=0.8','Accept-Encoding: gzip,identity','Accept-Language: en-US,en;q=0.8','Connection: keep-alive','User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36');
 
     //HTTP 返回header
     public $ResponseHeader=array();
@@ -32,19 +32,24 @@ class Crawler{
     //HTTP 返回主体
     public $ResponseBody;
 
-    public function __construct($url='',$cookiefile=false){
+    private $cookies = array();
+
+    private $cookiekey = array('domain','expires','path','HttpOnly','secure','SameSite');
+
+    public function __construct($url = '', $cookiefile = false){
         $this->url = $url;
         $this->useragent = UserAgent;
         $this->timeout = TimeOut;
-        if($cookiefile==false)
+        if($cookiefile == false)
             $this->cookiefile = COOKIEFILE;
-        if(!file_exists($this->cookiefile))
-            touch($this->cookiefile);
-        else{
-            if(time() - filectime($this->cookiefile) > COOKREFRESH){
-                unlink($this->cookiefile);
-                touch($this->cookiefile);
-            }
+
+        if(file_exists($this->cookiefile) && time() - filemtime($this->cookiefile) > COOKREFRESH){
+            unlink($this->cookiefile);
+            $this->cookies = array();
+        }elseif(file_exists($this->cookiefile)){
+            $this->cookies = unserialize(file_get_contents($this->cookiefile));
+        }elseif(!file_exists($this->cookiefile)){
+            $this->cookies = array();
         }
     }
 
@@ -76,11 +81,11 @@ class Crawler{
         curl_setopt($curl,CURLOPT_SSL_VERIFYHOST,0);
         //不检查证书
         curl_setopt($curl,CURLOPT_SSL_VERIFYPEER,0);
+        //附加cookie
+        if(!empty($this->get_cookie($url)))
+            curl_setopt($curl,CURLOPT_COOKIE,$this->get_cookie($url));
         //设置其他头部
         curl_setopt($curl,CURLOPT_HTTPHEADER, $this->header);
-        //设置COOKIE
-        curl_setopt($curl, CURLOPT_COOKIEFILE,$this->cookiefile);
-        curl_setopt($curl, CURLOPT_COOKIEJAR,$this->cookiefile);
         //设置可以获取请求头信息
         curl_setopt($curl, CURLINFO_HEADER_OUT,1);
         if(!empty($this->posts)){
@@ -97,26 +102,92 @@ class Crawler{
         $header = substr($data,0,$headerlen);
         $html = substr($data,$headerlen);
         $this->parse_header($header);
-        if($this->ResponseHeader['Content-Encoding'] == 'gzip'){
-            $html = gzdecode ($html);
+        if(isset($this->ResponseHeader['Content-Encoding']) && $this->ResponseHeader['Content-Encoding'] == 'gzip'){
+            $html = gzdecode($html);
         }
         curl_close($curl);
         $this->ResponseBody = $html;
     }
 
-    public function parse_header($string){
+    public function get_ResponseBody(){
+        return $this->ResponseBody;
+    }
+
+    private function parse_header($string){
         $lines = explode("\r\n",$string);
         foreach($lines as $line){
             if( $line== '' || stripos($line,'HTTP/') === 0) continue;
-            list($k,$v) = explode(":",$line);
+            $p = strpos($line, ':');
+            $k = trim(substr($line, 0, $p));
+            $v = trim(substr($line, $p+1)); 
+            if($k == 'Set-Cookie'){
+                $cookie = $this->parse_cookie($v);
+                $key = $this->cookie_exist_key($cookie['name']);
+                if($key === false){
+                    array_push($this->cookies, $cookie);
+                }else{
+                    $this->cookies[$key] = $cookie;
+                }
+            }
             $this->ResponseHeader[$k] = trim($v);
-        }
-        if(!empty($this->ResponseHeader['Set-Cookie'])){
-            $this->cookie = $this->ResponseHeader['Set-Cookie'];
         }
     }
 
-    public function get_ResponseBody(){
-        return $this->ResponseBody;
+     private function parse_cookie($cookie_data){
+        $cols = explode(';', $cookie_data);
+        $cookie = array();
+        foreach($cols as $col){
+            $p = strpos($col, '=');
+            if($p === false){
+                $k = trim($col);
+                $v = true;
+            }else{
+                $k = trim(substr($col, 0, $p));
+                $v = trim(substr($col, $p+1));
+            }
+            if(!in_array($k, $this->cookiekey)){
+                $cookie = array('name'=>$k,'value'=>$v);
+            }elseif($v !== false){
+                $cookie = array_merge($cookie, array($k=>$v));
+            }
+            if($p === false){
+                $cookie = array_merge($cookie, array($k=>$v));
+            }
+        }
+        return $cookie;
+    }
+
+    private function get_cookie($url){
+        preg_match('/(https?):\/\/([^\/:]*)(\d+)?([^\?]+)/i', $url, $matches);
+        $is_ssl = $matches[1] == 'https';
+        $host = $matches[2];
+        $port = $matches[3];
+        $path = $matches[4];
+        $cookies = '';
+        foreach($this->cookies as $cookie){
+            $cname = $cookie['name'];
+            $cvalue = $cookie['value'];
+            $cexpires = isset($cookie['expires']) ? strtotime($cookie['expires']) : time() + 10;
+            $cdomain = isset($cookie['domain']) ? $cookie['domain'] : $host;
+            $cpath = isset($cookie['path']) ? $cookie['path'] : '/';
+            $csecure = isset($cookie['secure']) ? $cookie['secure'] : false;
+            if($cexpires > time() && stripos($host, $cdomain) >= 0){
+                $cookies .= sprintf('%s=%s; ', $cname, $cvalue);
+            }
+        }
+        return rtrim($cookies,'; ');
+    }
+
+    private function cookie_exist_key($cookiename){
+        if(empty($this->cookies)) return false;
+        foreach($this->cookies as $key=>$cookie){
+            if($cookie['name'] == $cookiename) return $key;
+        }
+        return false;
+    }
+
+    public function __destruct(){
+        if(!empty($this->cookies))
+            file_put_contents($this->cookiefile, serialize($this->cookies));
     }
 }

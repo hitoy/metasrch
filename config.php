@@ -20,4 +20,4 @@ define('TimeOut',5);
 define('COOKIEFILE',ABSPATH.'caches/cookies.txt');
 
 /**COOKIE清空间隔 秒*/
-define('COOKREFRESH',7200);
+define('COOKREFRESH', 120);
