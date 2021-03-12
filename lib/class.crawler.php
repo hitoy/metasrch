@@ -21,7 +21,7 @@ class Crawler{
     public $timeout;
 
     //其他header信息
-    public $header=array('Accept: text/html,application/xhtml+xml,application/xml;application/json;q=0.9,*/*;q=0.8','Accept-Encoding: gzip,identity','Accept-Language: en-US,en;q=0.8','Connection: keep-alive','User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36');
+    public $header=array('Accept: text/html,application/xhtml+xml,application/xml;application/json;q=0.9,*/*;q=0.8','Accept-Encoding: gzip,identity','Accept-Language: en-US,en;q=0.8','Connection: keep-alive');
 
     //HTTP 返回header
     public $ResponseHeader=array();
@@ -34,7 +34,7 @@ class Crawler{
 
     private $cookies = array();
 
-    private $cookiekey = array('domain','expires','path','HttpOnly','secure','SameSite');
+    private $cookiekey = array('domain', 'expires', 'path', 'HttpOnly', 'secure', 'SameSite');
 
     public function __construct($url = '', $cookiefile = false){
         $this->url = $url;
@@ -53,7 +53,7 @@ class Crawler{
         }
     }
 
-    public function add_posts($key,$value){
+    public function add_posts($key, $value){
         $this->posts[$key] = $value;
     }
 
@@ -64,43 +64,43 @@ class Crawler{
             DM_ECHO('Invalid crawl URL, Failed!');
         $curl = curl_init(); 
         //设置URL
-        curl_setopt($curl,CURLOPT_URL,$url);
+        curl_setopt($curl, CURLOPT_URL, $url);
         //设置用户代理
-        curl_setopt($curl,CURLOPT_USERAGENT, $this->useragent);
+        curl_setopt($curl, CURLOPT_USERAGENT, $this->useragent);
         //设置超时时间
         curl_setopt($curl, CURLOPT_TIMEOUT, $this->timeout);
         //自动重定向
-        curl_setopt($curl,CURLOPT_FOLLOWLOCATION, 1);
+        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, 1);
         //重定向加Refer
-        curl_setopt($curl,CURLOPT_AUTOREFERER, 1);
+        curl_setopt($curl, CURLOPT_AUTOREFERER, 1);
         //输出头文件
-        curl_setopt($curl,CURLOPT_HEADER,1);
+        curl_setopt($curl, CURLOPT_HEADER, 1);
         //输出内容
-        curl_setopt($curl,CURLOPT_RETURNTRANSFER,1);
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         //不检查证书主机
-        curl_setopt($curl,CURLOPT_SSL_VERIFYHOST,0);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 0);
         //不检查证书
-        curl_setopt($curl,CURLOPT_SSL_VERIFYPEER,0);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, 0);
         //附加cookie
         if(!empty($this->get_cookie($url)))
-            curl_setopt($curl,CURLOPT_COOKIE,$this->get_cookie($url));
+            curl_setopt($curl, CURLOPT_COOKIE, $this->get_cookie($url));
         //设置其他头部
-        curl_setopt($curl,CURLOPT_HTTPHEADER, $this->header);
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $this->header);
         //设置可以获取请求头信息
-        curl_setopt($curl, CURLINFO_HEADER_OUT,1);
+        curl_setopt($curl, CURLINFO_HEADER_OUT, 1);
         if(!empty($this->posts)){
-            curl_setopt($curl,CURLOPT_POST,1); 
-            curl_setopt($curl,CURLOPT_POSTFIELDS, $this->posts);
+            curl_setopt($curl, CURLOPT_POST, 1); 
+            curl_setopt($curl, CURLOPT_POSTFIELDS, $this->posts);
         }
         $data = curl_exec($curl);
         if(curl_errno($curl)){
             return curl_error($curl);
         }
         //Response CODE
-        $this->ResponseCode = curl_getinfo($curl,CURLINFO_HTTP_CODE);
-        $headerlen = curl_getinfo($curl,CURLINFO_HEADER_SIZE);
-        $header = substr($data,0,$headerlen);
-        $html = substr($data,$headerlen);
+        $this->ResponseCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $headerlen = curl_getinfo($curl, CURLINFO_HEADER_SIZE);
+        $header = substr($data, 0, $headerlen);
+        $html = substr($data, $headerlen);
         $this->parse_header($header);
         if(isset($this->ResponseHeader['Content-Encoding']) && $this->ResponseHeader['Content-Encoding'] == 'gzip'){
             $html = gzdecode($html);
@@ -114,9 +114,9 @@ class Crawler{
     }
 
     private function parse_header($string){
-        $lines = explode("\r\n",$string);
+        $lines = explode("\r\n", $string);
         foreach($lines as $line){
-            if( $line== '' || stripos($line,'HTTP/') === 0) continue;
+            if( $line== '' || stripos($line, 'HTTP/') === 0) continue;
             $p = strpos($line, ':');
             $k = trim(substr($line, 0, $p));
             $v = trim(substr($line, $p+1)); 
@@ -146,7 +146,7 @@ class Crawler{
                 $v = trim(substr($col, $p+1));
             }
             if(!in_array($k, $this->cookiekey)){
-                $cookie = array('name'=>$k,'value'=>$v);
+                $cookie = array('name'=>$k, 'value'=>$v);
             }elseif($v !== false){
                 $cookie = array_merge($cookie, array($k=>$v));
             }
@@ -175,7 +175,7 @@ class Crawler{
                 $cookies .= sprintf('%s=%s; ', $cname, $cvalue);
             }
         }
-        return rtrim($cookies,'; ');
+        return rtrim($cookies, '; ');
     }
 
     private function cookie_exist_key($cookiename){

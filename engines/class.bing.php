@@ -22,7 +22,7 @@ class bing{
      * @param $q query string
      * @param $c count
      */
-    public function get_Results($q,$c){
+    public function get_Results($q, $c){
         $q = urlencode($q);
         $start = 0;
         $retry = 10;
@@ -70,22 +70,22 @@ class bing{
         return $returned;
 
          */
-        preg_match_all("/<li class=\"b_algo\">(.*?)<\/li>/isu",$string,$m);
+        preg_match_all("/<li class=\"b_algo\">(.*?)<\/li>/isu", $string, $m);
         if(empty($m[1])) return false;
         $returned = array();
         foreach($m[1] as $result){
-            preg_match("/<h2>(.*?)<\/h2>/isu",$result,$m);
+            preg_match("/<h2>(.*?)<\/h2>/isu", $result, $m);
             $title =  html_entity_decode(strip_tags($m[1]));
             $title = str_replace(array('...', '|'), '', $title);
 
-            preg_match("/<p>(.*?)<\/p>/isu",$result,$m);
+            preg_match("/<p>(.*?)<\/p>/isu", $result, $m);
             $description =  html_entity_decode(strip_tags($m[1]));
             $description = preg_replace('/^.*?· /isu', '', $description);
 
-            preg_match("/<cite>(.*?)<\/cite>/isu",$result,$m);
+            preg_match("/<cite>(.*?)<\/cite>/isu", $result, $m);
             $url =  html_entity_decode(strip_tags($m[1]));
             $key = sha1($title.$description);
-            $result = array('title'=>$title,'url'=>$url,'description'=>$description);
+            $result = array('title'=>$title, 'url'=>$url, 'description'=>$description);
             $returned[$key] = $result;
         }
         return $returned;
